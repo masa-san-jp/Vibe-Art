@@ -1,0 +1,33 @@
+:root {
+  --bg: #0b0d10;
+  --fg: #e6e6e6;
+  --muted: #9aa0a6;
+  --accent: #e5c16f;
+  --glass: rgba(15, 17, 22, 0.52);
+}
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", sans-serif; }
+main { height: 100%; width: 100%; overflow: hidden; position: relative; }
+canvas { position: fixed; inset: 0; display: block; }
+
+.topbar {
+  position: fixed; left: 16px; top: 12px; display: flex; gap: 16px;
+  align-items: baseline; z-index: 10; color: var(--fg);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.topbar h1 { font-size: 16px; margin: 0; letter-spacing: .04em; font-weight: 600; }
+.topbar .ver { font-size: 11px; color: var(--muted); margin-left: 6px; }
+.topbar .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+
+.hud {
+  position: fixed; right: 16px; bottom: 16px; background: var(--glass);
+  backdrop-filter: blur(10px); border: 1px solid rgba(229,193,111,.28);
+  border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  max-width: min(92vw, 760px); z-index: 10;
+}
+.hud .row { display: flex; gap: 12px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+.hud .row.small { color: var(--muted); font-size: 12px; }
+button { background: transparent; color: var(--fg); border: 1px solid rgba(229,193,111,.45);
+  padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:active { transform: translateY(1px); }

@@ -1,0 +1,97 @@
+
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proteus Shapeshifter – Web Prototype</title>
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Consent Modal -->
+  <div id="consent" class="modal">
+    <div class="modal__card">
+      <h1>Proteus Shapeshifter – 同意</h1>
+      <p>本デモは「アバター外見が自己認識・行動に与える影響」を軽く体験する実験的アートです。軽度の高所表現などが含まれます。</p>
+      <ul>
+        <li>いつでも終了できます（Esc または EXIT）。</li>
+        <li>デモ内で個人データは外部送信しません。</li>
+        <li>気分が悪くなったらすぐ退出してください。</li>
+      </ul>
+      <label class="checkbox">
+        <input type="checkbox" id="consentCheck" />
+        説明を読み、同意します
+      </label>
+      <div class="modal__actions">
+        <button id="startBtn" disabled>はじめる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div class="brand">Proteus Shapeshifter</div>
+    <div id="avatarButtons" class="btn-group"></div>
+    <div class="spacer"></div>
+    <div class="btn-group">
+      <button class="btn" data-emotion="calm">Calm</button>
+      <button class="btn" data-emotion="joy">Joy</button>
+      <button class="btn" data-emotion="anger">Anger</button>
+    </div>
+    <div class="btn-group">
+      <button class="btn" id="viewToggle" title="V キーでも切替">3rd Person</button>
+      <button class="btn btn--danger" id="exitBtn">EXIT</button>
+    </div>
+  </div>
+
+  <!-- Help Toast -->
+  <div id="help">
+    <p><b>操作</b>：WASD移動・マウス視点（VR可） ｜ <b>1–5</b> シェイプシフト ｜ <b>V</b> 視点切替</p>
+    <p>Speed Track / Strength Test / High Ledge を試して、感じの違いを観察してみてください。</p>
+  </div>
+
+  <!-- A-Frame Scene -->
+  <a-scene renderer="colorManagement: true; physicallyCorrectLights: true" background="color: #111" embedded>
+    <a-assets timeout="10000">
+      <!-- glTF / GLB assets via jsDelivr (Khronos CC0 samples) -->
+      <a-asset-item id="avCesiumMan" src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"></a-asset-item>
+      <a-asset-item id="avRobot"     src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb"></a-asset-item>
+      <a-asset-item id="avFox"       src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Fox/glTF-Binary/Fox.glb"></a-asset-item>
+      <!-- （ローカルに置く場合は ./assets/models へ） -->
+    </a-assets>
+
+    <!-- Lights -->
+    <a-entity light="type: ambient; intensity: 0.5"></a-entity>
+    <a-entity light="type: directional; intensity: 1.0" position="2 4 2"></a-entity>
+
+    <!-- Ground -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="80" height="80" color="#222"></a-plane>
+
+    <!-- Camera Rig (moves); camera (looks); avatar (visible in 3rd person) -->
+    <a-entity id="rig" wasd-controls="acceleration: 40" position="0 0 5">
+      <a-entity id="avatar" position="0 0 0" scale="1 1 1"></a-entity>
+      <a-entity id="cam" camera="active: true" look-controls position="0 1.6 0"></a-entity>
+    </a-entity>
+
+    <!-- Speed Track -->
+    <a-entity id="track" position="-10 0 -5"></a-entity>
+
+    <!-- Strength Test -->
+    <a-box id="heavyBox" position="6 0.5 -4" depth="1.2" height="1.2" width="1.2" color="#7b4a2e"></a-box>
+    <a-text value="Strength Test (Robot/Divineのみ可)" color="#ddd" position="5.2 1.6 -4" width="6"></a-text>
+
+    <!-- High Ledge -->
+    <a-box position="-15 5 -5"  depth="20" height="0.2" width="5" color="#444"></a-box>
+    <a-box position="-15 10 -5" depth="20" height="0.2" width="1" color="#666"></a-box>
+    <a-text value="High Ledge" color="#ddd" position="-15 10.6 -5" width="6"></a-text>
+
+    <!-- Subtle environment decor -->
+    <a-entity geometry="primitive: ring; radiusInner: 7; radiusOuter: 7.2" rotation="-90 0 0" position="0 0.01 -5" material="color: #333"></a-entity>
+  </a-scene>
+
+  <!-- App (ESM) -->
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

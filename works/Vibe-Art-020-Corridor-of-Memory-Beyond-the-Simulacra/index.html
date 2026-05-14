@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Simulacra Corridor – Memory Bloom Prototype</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at center, #0c1024 0%, #03040c 40%, #010106 100%);
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      mix-blend-mode: screen;
+      background: radial-gradient(circle at var(--cursor-x, 50%) var(--cursor-y, 50%), rgba(33, 136, 255, 0.2), transparent 45%);
+      transition: background 180ms ease-out;
+      opacity: 0.35;
+    }
+
+    .hud {
+      position: fixed;
+      top: clamp(18px, 3vw, 28px);
+      left: clamp(18px, 3vw, 32px);
+      z-index: 12;
+      color: rgba(230, 240, 255, 0.78);
+      letter-spacing: 0.06em;
+      font-size: clamp(12px, 0.9vw + 7px, 16px);
+      pointer-events: none;
+      max-width: min(320px, 32vw);
+      text-transform: uppercase;
+    }
+
+    .hud strong {
+      display: block;
+      font-size: 0.82em;
+      letter-spacing: 0.28em;
+      color: rgba(162, 216, 255, 0.85);
+      margin-bottom: 6px;
+    }
+
+    .ui-panel {
+      position: fixed;
+      right: clamp(12px, 2vw, 28px);
+      bottom: clamp(12px, 2vw, 28px);
+      width: min(340px, 30vw);
+      padding: clamp(12px, 2vw, 20px);
+      background: rgba(4, 7, 18, 0.68);
+      border: 1px solid rgba(55, 110, 220, 0.28);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 8, 28, 0.45);
+      backdrop-filter: blur(12px);
+      color: rgba(230, 240, 255, 0.92);
+      z-index: 30;
+    }
+
+    .ui-section + .ui-section {
+      margin-top: clamp(12px, 1.8vw, 18px);
+    }
+
+    .ui-label {
+      display: block;
+      font-size: clamp(10px, 0.75vw + 6px, 13px);
+      letter-spacing: 0.26em;
+      margin-bottom: clamp(6px, 1vw, 10px);
+      color: rgba(147, 197, 255, 0.82);
+      text-transform: uppercase;
+    }
+
+    .ui-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(6px, 1vw, 10px);
+    }
+
+    .ui-button {
+      flex: 1 1 calc(50% - clamp(6px, 1vw, 10px));
+      min-width: 120px;
+      padding: clamp(6px, 1.1vw, 11px) clamp(10px, 1.8vw, 16px);
+      border-radius: 999px;
+      border: 1px solid rgba(75, 115, 255, 0.35);
+      background: radial-gradient(circle at top left, rgba(45, 90, 255, 0.16), rgba(13, 25, 48, 0.68));
+      color: rgba(234, 242, 255, 0.9);
+      font-size: clamp(12px, 1vw + 6px, 15px);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 150ms ease-out;
+    }
+
+    .ui-button:hover {
+      border-color: rgba(125, 175, 255, 0.8);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(6, 18, 48, 0.4);
+    }
+
+    .ui-button.is-active {
+      background: linear-gradient(125deg, rgba(80, 195, 255, 0.42), rgba(167, 48, 255, 0.32));
+      border-color: rgba(160, 210, 255, 0.85);
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(20, 85, 255, 0.32);
+    }
+
+    .ui-button.is-disabled,
+    .ui-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .meta-tag {
+      position: fixed;
+      bottom: clamp(16px, 2vw, 24px);
+      left: clamp(18px, 3vw, 32px);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(120, 186, 255, 0.28);
+      backdrop-filter: blur(10px);
+      background: rgba(12, 22, 48, 0.38);
+      color: rgba(190, 220, 255, 0.78);
+      letter-spacing: 0.32em;
+      font-size: clamp(9px, 0.7vw + 5px, 12px);
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 32;
+    }
+
+    @media (max-width: 720px) {
+      .ui-panel {
+        width: calc(100vw - 32px);
+        left: 16px;
+        right: 16px;
+      }
+
+      .ui-button {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.js",
+      "gvrm-format/": "https://gaussian-vrm.github.io/gvrm-format/",
+      "gaussian-splats-3d": "https://gaussian-vrm.github.io/lib/gaussian-splats-3d.module.js",
+      "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="hud">
+    <strong>Simulacra Corridor</strong>
+    Stir the synthetic memory field with your pointer. Soundcarving shifts the bloom.
+  </div>
+  <div class="ui-panel">
+    <div class="ui-section">
+      <span class="ui-label">Animation</span>
+      <div class="ui-buttons" id="animation-buttons"></div>
+    </div>
+    <div class="ui-section">
+      <span class="ui-label">Soundtrack</span>
+      <div class="ui-buttons" id="audio-buttons"></div>
+    </div>
+    <div class="ui-section">
+      <span class="ui-label">Palette</span>
+      <div class="ui-buttons" id="palette-buttons"></div>
+    </div>
+  </div>
+  <div class="overlay"></div>
+  <div class="meta-tag">AI Generated Simulacra Interface</div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

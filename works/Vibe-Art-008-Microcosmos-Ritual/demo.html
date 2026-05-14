@@ -1,0 +1,341 @@
+// ブラウザで開いてお楽しみください。
+
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ミクロコスモスの通過儀礼 — ブラウザデモ</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#0f172a; --text:#e2e8f0; --muted:#94a3b8;
+      --brand:#22d3ee; --accent:#a7f3d0; --ring:#14b8a6; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0; font:15px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, Helvetica, Arial;
+      color:var(--text); background: radial-gradient(1200px 800px at 70% -10%, #0b2336, var(--bg));}
+    header{position:sticky; top:0; z-index:10; display:flex; gap:.75rem; align-items:center; justify-content:space-between;
+      padding:.6rem 1rem; background:rgba(11,16,32,.7); backdrop-filter: blur(6px); border-bottom:1px solid rgba(255,255,255,.06)}
+    h1{font-size:1rem; margin:0; letter-spacing:.06em}
+    .nav{display:flex; gap:.5rem}
+    .btn{appearance:none; cursor:pointer; padding:.45rem .75rem; border-radius:999px; border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03); color:var(--text); transition:.2s}
+    .btn:hover{border-color:var(--brand); transform:translateY(-1px)}
+    .btn.primary{background:linear-gradient(120deg, rgba(34,211,238,.12), rgba(16,185,129,.12)); border-color:rgba(34,211,238,.5)}
+    .btn.active{box-shadow:0 0 0 2px rgba(34,211,238,.35) inset}
+    main{max-width:1024px; margin:1rem auto 2rem; padding:0 1rem}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08);
+      border-radius:1rem; padding:1rem; box-shadow:var(--shadow);}
+    .grid{display:grid; gap:1rem}
+    .cols-2{grid-template-columns:1.2fr .8fr}
+    @media (max-width:960px){ .cols-2{grid-template-columns:1fr} }
+    label{display:block; margin:.25rem 0 .35rem; color:var(--muted); font-size:.95rem}
+    select,input[type="range"],textarea{width:100%; padding:.6rem .75rem; border-radius:.7rem; border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03); color:var(--text)}
+    input[type="range"]{accent-color:var(--brand)}
+    .controls{display:flex; flex-wrap:wrap; gap:.5rem}
+    .controls>*{flex:1 1 180px}
+    .kicker{color:var(--accent); text-transform:uppercase; letter-spacing:.2em; font-size:.78rem}
+    .helper{color:var(--muted)}
+    .progress{height:.65rem; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+    .progress>div{height:100%; background:linear-gradient(90deg, #22d3ee, #10b981); width:0%}
+    .canvas-wrap{border-radius:1rem; overflow:hidden; border:1px solid rgba(255,255,255,.08)}
+    canvas{display:block; width:100%; height:auto; background:#02060f}
+    small.dim{color:var(--muted)}
+    footer{opacity:.75; text-align:center; padding:1.5rem 0}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ミクロコスモスの通過儀礼 — デモ</h1>
+    <nav class="nav" aria-label="儀礼の段階">
+      <button class="btn active" data-stage="separation">分離</button>
+      <button class="btn" data-stage="transition">移行</button>
+      <button class="btn" data-stage="integration">統合</button>
+    </nav>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+
+  <footer>
+    <small class="dim">© 2025 Microcosmos Ritual — Demo (Single-file). MIT License.</small>
+  </footer>
+
+  <script>
+    // ---- utils ----
+    const STORAGE_KEY = "microcosmos.demo.v1";
+    const defaultState = () => ({
+      version: 1, phase: "separation",
+      microbe: "yeast", substrate: "fruit",
+      seed: Math.floor(Math.random()*1e9),
+      startedAt: Date.now(),
+      params: { f:0.036, k:0.061, du:0.16, dv:0.08, stepsPerFrame:2 },
+      temperature: 0.5, feeding: 0, muted: false,
+      journal: [], tokens: []
+    });
+    function loadState(){ try{ return {...defaultState(), ...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")} }catch(e){ return defaultState(); } }
+    function saveState(s){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }catch(e){} }
+    function exportToken(s){
+      const payload = { v:1, seed:s.seed, microbe:s.microbe, substrate:s.substrate, params:s.params, startedAt:s.startedAt, signature:"microcosmos-ritual" };
+      return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    }
+    function importToken(b64){
+      const txt = decodeURIComponent(escape(atob(b64.trim())));
+      const p = JSON.parse(txt);
+      if(p.signature!=="microcosmos-ritual") throw new Error("invalid token");
+      return p;
+    }
+    function daysUntilNextPhase(target='full'){
+      const now = new Date(); const syn = 29.530588853;
+      const ref = Date.UTC(2000,0,6,18,14,0,0);
+      const days = (now.getTime()-ref)/86400000;
+      let age = ((days % syn)+syn)%syn; const tgt = target==='full'? syn/2 : 0;
+      let diff = tgt - age; if(diff<0) diff += syn; return diff;
+    }
+    function formatDays(d){ const dd=Math.floor(d), hh=Math.floor((d-dd)*24); return dd+"日 "+hh+"時間"; }
+
+    // ---- RNG ----
+    function makeRng(seed){ let x = (seed>>>0)||2463534242; return function(){ x^=x<<13; x^=x>>>17; x^=x<<5; return (x>>>0)/0xFFFFFFFF; } }
+
+    // ---- Reaction-Diffusion (Gray-Scott) ----
+    class ReactionDiffusion{
+      constructor(canvas, opts={}){
+        this.canvas = canvas; this.ctx = canvas.getContext('2d', { willReadFrequently:true });
+        this.width = opts.width||220; this.height = opts.height||220;
+        canvas.width=this.width; canvas.height=this.height;
+        this.params = { f:0.036, k:0.061, du:0.16, dv:0.08, stepsPerFrame:2 };
+        this.dt=1.0; this.frame=0; this.rng = makeRng(opts.seed||1);
+        const N=this.width*this.height; this.u=new Float32Array(N).fill(1.0); this.v=new Float32Array(N).fill(0.0);
+        for(let i=0;i<7;i++){ this._addSpot((this.rng()*this.width)|0,(this.rng()*this.height)|0,8+((this.rng()*12)|0)); }
+        this.imageData=this.ctx.createImageData(this.width,this.height);
+      }
+      setParams(p){ this.params={...this.params,...p}; } setSeed(seed){ this.rng=makeRng(seed); }
+      disturb(x,y,r=10,vVal=1.0){ this._addSpot(x,y,r,vVal); }
+      _addSpot(cx,cy,r=10,vVal=1.0){
+        for(let y=cy-r;y<=cy+r;y++){ for(let x=cx-r;x<=cx+r;x++){
+          const dx=x-cx, dy=y-cy; if(dx*dx+dy*dy>r*r) continue;
+          if(x<0||y<0||x>=this.width||y>=this.height) continue;
+          const i=x+y*this.width; this.v[i]=vVal*0.5+this.v[i]*0.5; this.u[i]=1.0-this.v[i];
+        }}}
+      step(n=1, feeding=0.0, temperature=0.5){
+        const {f,k,du,dv}=this.params; const F=Math.min(0.08, Math.max(0.0, f+feeding*0.02));
+        const K=k; const tScale=0.7+temperature*0.8;
+        for(let s=0;s<n;s++){
+          for(let y=0;y<this.height;y++){ for(let x=0;x<this.width;x++){
+            const i=x+y*this.width, u=this.u[i], v=this.v[i];
+            const uL=this.u[(x>0?x-1:this.width-1)+y*this.width];
+            const uR=this.u[(x<this.width-1?x+1:0)+y*this.width];
+            const uU=this.u[x+(y>0?y-1:this.height-1)*this.width];
+            const uD=this.u[x+(y<this.height-1?y+1:0)*this.width];
+            const vL=this.v[(x>0?x-1:this.width-1)+y*this.width];
+            const vR=this.v[(x<this.width-1?x+1:0)+y*this.width];
+            const vU=this.v[x+(y>0?y-1:this.height-1)*this.width];
+            const vD=this.v[x+(y<this.height-1?y+1:0)*this.width];
+            const lapU=(uL+uR+uU+uD-4*u), lapV=(vL+vR+vU+vD-4*v);
+            const uvv=u*v*v;
+            const du_dt=(du*tScale)*lapU - uvv + F*(1-u);
+            const dv_dt=(dv*tScale)*lapV + uvv - (F+K)*v;
+            this.u[i]=clamp01(u+du_dt*this.dt); this.v[i]=clamp01(v+dv_dt*this.dt);
+          }}
+        }
+        this.frame+=n;
+      }
+      draw(){
+        const img=this.imageData.data, N=this.width*this.height;
+        for(let i=0;i<N;i++){ const v=this.v[i]; const c=Math.max(0,Math.min(1,v*1.3));
+          const r=(255*Math.min(1.0,c*1.2))|0, g=(255*Math.min(1.0,0.3+c*0.9))|0, b=(255*Math.min(1.0,0.6+c*0.5))|0;
+          const k=i*4; img[k]=r; img[k+1]=g; img[k+2]=b; img[k+3]=255; }
+        this.ctx.putImageData(this.imageData,0,0);
+      }
+    }
+    const clamp01 = x => x<0?0:(x>1?1:x);
+
+    // ---- Audio bubbles ----
+    class BubbleAudio{
+      constructor(){ this.ctx=null; this.muted=false; this._int=null; this.intensity=0.2; }
+      ensure(){ if(this.ctx) return; const A=window.AudioContext||window.webkitAudioContext; if(!A) return; this.ctx=new A(); }
+      setMuted(m){ this.muted=m; if(m) this.stop(); }
+      setIntensity(x){ this.intensity=Math.max(0,Math.min(1,x)); if(!this.muted) this.start(); }
+      start(){ if(!this.ctx) this.ensure(); if(!this.ctx||this._int) return;
+        this._int=setInterval(()=>{ if(this.muted||!this.ctx) return; if(Math.random()<this.intensity*0.9+0.05) this.burst(); }, 100);
+      }
+      stop(){ if(this._int){ clearInterval(this._int); this._int=null; } }
+      burst(){
+        const ctx=this.ctx; if(!ctx) return; const t=ctx.currentTime;
+        const osc=ctx.createOscillator(), g=ctx.createGain(), p=ctx.createStereoPanner?ctx.createStereoPanner():null;
+        osc.type='sine'; osc.frequency.setValueAtTime(220+Math.random()*660,t);
+        g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.2,t+0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+0.20+Math.random()*0.1);
+        if(p){ p.pan.setValueAtTime(-0.8+Math.random()*1.6,t); osc.connect(g).connect(p).connect(ctx.destination); }
+        else { osc.connect(g).connect(ctx.destination); }
+        osc.start(t); osc.stop(t+0.35);
+      }
+    }
+
+    // ---- UI ----
+    let state = loadState();
+    let rd=null, rafId=null, audio=new BubbleAudio();
+    const app = document.getElementById('app');
+    const navBtns = Array.from(document.querySelectorAll('[data-stage]'));
+    navBtns.forEach(b=> b.addEventListener('click', ()=>{ state.phase=b.dataset.stage; saveState(state); render(); updateNav(); }));
+    function updateNav(){ navBtns.forEach(b=> b.classList.toggle('active', b.dataset.stage===state.phase)); }
+
+    function el(tag, attrs={}, ...children){
+      const n=document.createElement(tag);
+      Object.entries(attrs).forEach(([k,v])=>{ if(k==='class') n.className=v; else n.setAttribute(k,v); });
+      children.flat().forEach(c=> n.append(c?.nodeType?c:document.createTextNode(c)));
+      return n;
+    }
+    const button=(cls,txt,on)=>{ const b=el('button',{class:'btn '+cls},txt); b.onclick=on; return b; };
+    const labeled=(lab,node)=>{ const w=el('div'); w.append(el('label',{},lab), node); return w; };
+    const select=(opts,val,on)=>{ const s=el('select'); opts.forEach(o=>{ const [v,l]=o.split('|'); const op=el('option',{value:v},l); if(v===val) op.selected=true; s.append(op); }); s.onchange=()=>on(s.value); return s; };
+    const slider=(lab,val,on)=>{ const w=el('div'), lb=el('label',{},lab), i=el('input',{type:'range',min:'0',max:'1',step:'0.01',value:String(val)}); i.oninput=()=>on(parseFloat(i.value)); w.append(lb,i); return {wrap:w,input:i}; };
+
+    function render(){
+      app.innerHTML='';
+      if(state.phase==='separation') renderSeparation();
+      else if(state.phase==='transition') renderTransition();
+      else renderIntegration();
+    }
+
+    function renderSeparation(){
+      const wrap=el('section',{class:'grid cols-2'});
+      const left=el('div',{class:'card'});
+      left.append(el('div',{class:'kicker'},'分離 / 旅のはじまり'), el('h2',{},'仮想仕込み：微生物と素材を選ぶ'),
+        el('p',{class:'helper'},'組み合わせによって発酵パターンが変化します。'));
+      const form=el('div',{class:'grid'});
+      form.append(labeled('微生物',select(['yeast|酵母菌','lacto|乳酸菌','natto|納豆菌'], state.microbe, v=>state.microbe=v)));
+      form.append(labeled('素材',select(['fruit|果物','rice|米','soy|大豆'], state.substrate, v=>state.substrate=v)));
+      const act=el('div',{class:'controls'});
+      act.append(button('primary','仕込む',()=>{ mapParams(); state.phase='transition'; state.startedAt=Date.now(); saveState(state); render(); updateNav(); }));
+      act.append(button('','リセット',()=>{ state=defaultState(); saveState(state); render(); updateNav(); stopLoop(); }));
+      left.append(form, act);
+
+      const right=el('div',{class:'card'});
+      right.append(el('div',{class:'kicker'},'ガイド'), el('h3',{},'三段階の儀礼'),
+        el('p',{},'① 分離：仕込み／② 移行：発酵を観察／③ 統合：交換の儀式と共有'));
+      wrap.append(left,right); app.append(wrap);
+    }
+
+    function mapParams(){
+      const combos={ yeast:{f:0.034,k:0.059}, lacto:{f:0.037,k:0.0605}, natto:{f:0.025,k:0.051} };
+      const subs={ fruit:{du:0.20,dv:0.08}, rice:{du:0.17,dv:0.09}, soy:{du:0.14,dv:0.07} };
+      state.params={...combos[state.microbe], ...subs[state.substrate], stepsPerFrame:2}; saveState(state);
+    }
+
+    function renderTransition(){
+      stopLoop();
+      const cnv=document.createElement('canvas'); cnv.width=260; cnv.height=260;
+      const card=el('div',{class:'card'});
+      const head=el('div',{}, el('div',{class:'kicker'},'移行 / 発酵の経過'), el('h2',{},'発酵の観察と対話'));
+      const guide=el('p',{class:'helper'},'クリックで容器を刺激。餌・温度・時間加速で模様が応答します。');
+      const ctrls=el('div',{class:'controls'});
+      const feed=button('primary','餌を与える',()=>{ state.feeding=Math.min(1,(state.feeding||0)+0.6); saveState(state); });
+      const stir=button('','攪拌する',()=>{ for(let i=0;i<10;i++){ rd.disturb((Math.random()*rd.width)|0,(Math.random()*rd.height)|0,4+((Math.random()*8)|0),1.0);} });
+      const temp=slider('温度（低→高）', state.temperature, v=>{ state.temperature=v; });
+      const speed=slider('時間加速', state.params.stepsPerFrame/4, v=>{ state.params.stepsPerFrame=Math.max(1,Math.round(v*8)); saveState(state); });
+      const mute=button('', state.muted?'ミュート解除':'ミュート', ()=>{ state.muted=!state.muted; audio.setMuted(state.muted); saveState(state); mute.textContent=state.muted?'ミュート解除':'ミュート'; });
+      ctrls.append(feed, stir, temp.wrap, speed.wrap, mute);
+
+      const progress=el('div',{class:'progress'}), bar=el('div'); progress.append(bar);
+      const moon=el('p',{class:'helper'}, `次の満月まで: ${formatDays(daysUntilNextPhase('full'))} ／ 新月まで: ${formatDays(daysUntilNextPhase('new'))}（概算）`);
+
+      card.append(head, guide, ctrls, el('div',{class:'canvas-wrap'},cnv), el('br'), progress, moon,
+        el('br'),
+        button('','「統合」へ進む',()=>{ state.phase='integration'; saveState(state); render(); updateNav(); })
+      );
+      app.append(card);
+
+      rd=new ReactionDiffusion(cnv,{seed:state.seed, width:240, height:240}); rd.setParams(state.params);
+      cnv.addEventListener('click', e=>{
+        const r=cnv.getBoundingClientRect();
+        const x=((e.clientX-r.left)/r.width*rd.width)|0, y=((e.clientY-r.top)/r.height*rd.height)|0;
+        rd.disturb(x,y,10+((Math.random()*10)|0),0.9);
+      });
+      startLoop(bar);
+    }
+
+    function startLoop(bar){
+      audio.setMuted(state.muted); audio.start();
+      const loop=()=>{
+        const steps=state.params.stepsPerFrame||2;
+        rd.setParams(state.params);
+        rd.step(steps, state.feeding||0, state.temperature||0.5);
+        rd.draw();
+        state.feeding=Math.max(0,(state.feeding||0)-0.01);
+        const elapsed=(Date.now()-state.startedAt)/(1000*60*60);
+        const simProg=Math.min(1, rd.frame/4000);
+        const prog=Math.min(1, (elapsed/6 + simProg)/2);
+        bar.style.width=(prog*100).toFixed(1)+'%';
+        audio.setIntensity(0.1 + simProg*0.7);
+        saveState(state);
+        rafId=requestAnimationFrame(loop);
+      };
+      rafId=requestAnimationFrame(loop);
+    }
+    function stopLoop(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } if(audio) audio.stop(); }
+
+    function renderIntegration(){
+      const wrap=el('section',{class:'grid cols-2'});
+      const left=el('div',{class:'card'});
+      left.append(el('div',{class:'kicker'},'統合 / 発酵シェア会'), el('h2',{},'交換の儀式：トークンで共有'),
+        el('p',{class:'helper'},'あなたの世界を表すトークンをコピー。受け取ったトークンを貼り付けて混ぜ合わせます。'));
+      const tokenArea=document.createElement('textarea'); tokenArea.rows=6; tokenArea.value=exportToken(state);
+      left.append(labeled('あなたのトークン', tokenArea), el('div',{class:'controls'},
+        button('','コピー',()=>{ tokenArea.select(); document.execCommand('copy'); }),
+        button('','最初から',()=>{ state=defaultState(); saveState(state); render(); updateNav(); })
+      ));
+
+      const right=el('div',{class:'card'});
+      const importArea=document.createElement('textarea'); importArea.rows=6; importArea.placeholder='他者のトークンを1行ずつ貼り付け';
+      const out=el('div',{id:'mosaic'});
+      const run=button('primary','交換儀式を始める',()=>{
+        const lines=importArea.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+        const toks=[]; try{ for(const l of lines){ toks.push(importToken(l)); } }catch(e){ alert('トークン読み込みに失敗しました'); return; }
+        state.tokens=toks; mergeCommunity(toks); saveState(state); drawMosaic(out); 
+      });
+      right.append(labeled('他者トークン', importArea), run, el('br'), out);
+
+      wrap.append(left,right); app.append(wrap);
+      if(state.tokens?.length) drawMosaic(out);
+      stopLoop();
+    }
+
+    function mergeCommunity(tokens){
+      if(!tokens.length) return;
+      const avg=tokens.reduce((a,t)=>({ f:a.f+(t.params?.f??0), k:a.k+(t.params?.k??0), du:a.du+(t.params?.du??0), dv:a.dv+(t.params?.dv??0) }), {f:0,k:0,du:0,dv:0});
+      const n=tokens.length; avg.f/=n; avg.k/=n; avg.du/=n; avg.dv/=n;
+      state.params.f = state.params.f*0.7 + avg.f*0.3;
+      state.params.k = state.params.k*0.7 + avg.k*0.3;
+      state.params.du= state.params.du*0.7 + avg.du*0.3;
+      state.params.dv= state.params.dv*0.7 + avg.dv*0.3;
+    }
+
+    function drawMosaic(container){
+      container.innerHTML='';
+      const grid=el('div',{class:'grid', style:'grid-template-columns:repeat(3,1fr); gap:10px'});
+      const all=[{seed:state.seed, params:state.params}, ...state.tokens].slice(0,9);
+      all.forEach((tok,i)=>{
+        const card=el('div',{class:'card'});
+        const cnv=document.createElement('canvas'); cnv.width=160; cnv.height=160;
+        card.append(cnv, el('small',{class:'dim'}, i===0?'あなた':'共同体'));
+        grid.append(card);
+        // snapshot
+        const sim=new ReactionDiffusion(cnv,{seed: tok.seed || (tok.startedAt%100000), width:80, height:80});
+        sim.setParams({...tok.params, stepsPerFrame:5}); for(let k=0;k<220;k++) sim.step(2,0.0,0.5); sim.draw();
+      });
+      const saveBtn=button('','PNGとして保存',()=>{
+        const tiles=Array.from(grid.querySelectorAll('canvas')); const cols=3, rows=Math.ceil(tiles.length/3), size=tiles[0].width;
+        const out=document.createElement('canvas'); out.width=cols*size; out.height=rows*size; const ctx=out.getContext('2d');
+        tiles.forEach((c,i)=>{ const x=(i%cols)*size, y=((i/cols)|0)*size; ctx.drawImage(c,x,y); });
+        const a=document.createElement('a'); a.href=out.toDataURL('image/png'); a.download='microcosmos-community.png'; a.click();
+      });
+      container.append(grid, el('br'), saveBtn);
+    }
+
+    // boot
+    updateNav(); render();
+    window.addEventListener('beforeunload', ()=> saveState(state));
+  </script>
+</body>
+</html>
+

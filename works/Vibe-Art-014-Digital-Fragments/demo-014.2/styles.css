@@ -1,0 +1,23 @@
+:root{
+  --bg0:#05070a; --bg1:#0b0f14; --bg2:#121826;
+  --fg:#e6e9ef; --muted:#94a3b8;
+  --violet:#9b87f5; --gold:#f6cf6b; --cyan:#6bdcff;
+}
+*{box-sizing:border-box}
+html,body{height:100%;}
+body{
+  margin:0; overflow:hidden; color:var(--fg);
+  background: radial-gradient(1000px 600px at 70% 30%, var(--bg2) 0%, var(--bg1) 55%, var(--bg0) 100%);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans", "Helvetica Neue", Arial;
+}
+canvas{ display:block; position:fixed; inset:0; width:100vw; height:100vh; }
+
+.hud{ position:fixed; left:16px; top:14px; z-index:10; padding:10px 12px; border-radius:12px;
+  background: rgba(8,12,18,.45); border:1px solid rgba(255,255,255,.08); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+.hud.hidden{ display:none; }
+.hud .row{ display:flex; align-items:center; gap:10px; }
+.hud .row + .row{ margin-top:6px; }
+.hud .small{ font-size:12px; color:var(--muted); }
+.hud .dot{ width:6px; height:6px; border-radius:999px; background: var(--violet); box-shadow: 0 0 12px rgba(155,135,245,.9); }

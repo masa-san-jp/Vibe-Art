@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Fragments: Rite of Creation & Destruction</title>
+  <meta name="description" content="AI生成（擬似）と破壊・再生の儀式をブラウザで体験するプロトタイプ" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">デジタル・フラグメンツ</div>
+      <nav class="controls">
+        <button id="btnInfo" title="情報">ℹ︎</button>
+        <button id="btnMute" title="ミュート">🔈</button>
+        <button id="btnExit" title="退出">✕</button>
+      </nav>
+    </header>
+
+    <main class="stage">
+      <canvas id="stageCanvas" width="1280" height="720" aria-label="曼荼羅キャンバス"></canvas>
+      <section class="sidebar">
+        <div class="panel">
+          <label for="prompt">奉納キーワード</label>
+          <input id="prompt" placeholder="例：再生, 炎, 円環, 世界樹" />
+          <div class="buttons">
+            <button id="btnCreate" class="primary">創造</button>
+            <button id="btnDestroy" class="danger" disabled>破壊</button>
+            <button id="btnRegenerate" disabled>再生</button>
+          </div>
+          <div class="timer" id="timer">—:—</div>
+        </div>
+        <article id="story" class="story" aria-live="polite"></article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <small>これはAI生成の擬似体験です。入力は匿名化され次サイクルの種に利用されます。Escで即時退出。</small>
+    </footer>
+  </div>
+
+  <dialog id="infoDialog">
+    <h3>デジタル・フラグメンツ：創造と破壊の儀式</h3>
+    <p>本作は、創造→展示→破壊→再生の循環を体験するインタラクティブ作品です。強い光や音の演出があります。苦手な方はミュートをご利用ください。</p>
+    <ul>
+      <li>創造：キーワードから神話詩と曼荼羅を生成</li>
+      <li>破壊：テキスト崩落・粒子化・グリッチの儀式</li>
+      <li>再生：破壊の残渣が次の創造の種に</li>
+    </ul>
+    <form method="dialog"><button>閉じる</button></form>
+  </dialog>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

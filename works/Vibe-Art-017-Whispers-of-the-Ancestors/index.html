@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>微生共鳴曼荼羅 – Interactive Web Art (p5.js)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0f14" />
+  <!-- p5 core & sound (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- Start Overlay -->
+  <div id="overlay" class="overlay">
+    <div class="panel">
+      <h1>微生共鳴曼荼羅 – インタラクティブ・モックアップ (p5.js)</h1>
+      <p>
+        この作品は、<strong>あなたの声・環境音（マイク）</strong>と<strong>カメラの動き</strong>に呼応して<br/>
+        「反応拡散×曼荼羅×回路的フラクタル」のビジュアルが生成・変化します。<br/>
+      </p>
+      <div class="tips">
+        <p>クリック（またはスペース）で <strong>マイクとカメラ</strong> を有効化。</p>
+        <ul class="kbd">
+          <li><kbd>← / →</kbd> 分割数（対称数）</li>
+          <li><kbd>1/2/3</kbd> モード切替（観察 / 描画 / 祖霊）</li>
+          <li><kbd>H</kbd> HUD 表示切替　<kbd>S</kbd> PNG 保存　<kbd>R</kbd> 録画</li>
+          <li>マウスドラッグ：中心付近に「種」を撒く（増殖の起点）</li>
+        </ul>
+      </div>
+      <button id="startBtn" class="primary">はじめる</button>
+    </div>
+  </div>
+
+  <!-- Canvas holder -->
+  <main id="sketch-container"></main>
+
+  <!-- HUD -->
+  <div class="hud" id="hud">
+    <div class="meters">
+      <div>Valence: <span id="valence">0.00</span></div>
+      <div>Arousal: <span id="arousal">0.00</span></div>
+      <div>Growth:  <span id="growth">0.00</span></div>
+      <div>Symmetry: <span id="sym">8</span></div>
+      <div>Mode: <span id="mode">observe</span></div>
+      <div>Rec: <span id="rec">● STOP</span></div>
+    </div>
+    <div class="help">
+      囁き→冷色＆内向き／高揚→暖色＆強いグロー／ドラッグ→増殖の種
+    </div>
+  </div>
+
+  <script src="./sketch.js"></script>
+</body>
+</html>

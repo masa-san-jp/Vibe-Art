@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>無常と再生 – Webインタラクティブアート（p5.js）</title>
+  <meta name="description" content="儀式終盤：散逸と還る（無常と再生）のインタラクティブWebアート。p5.js, WebAudio, カメラ/マイク対応。" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- p5 core -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <!-- p5 sound -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/addons/p5.sound.min.js"></script>
+</head>
+<body>
+  <noscript>
+    <div class="noscript">JavaScriptを有効にしてください。</div>
+  </noscript>
+
+  <!-- HUD / Overlay -->
+  <div id="overlay" aria-live="polite">
+    <div class="hud" role="group" aria-label="コントロール">
+      <h1>無常と再生</h1>
+      <p class="hint">
+        マウスで粒子が揺らぎます。<br />
+        光の球をクリック/タップ、または <kbd>Space</kbd> で送別。<br />
+        <kbd>M</kbd> マイク、 <kbd>C</kbd> カメラ、 <kbd>G</kbd> 品質切替、 <kbd>F</kbd> 全画面
+      </p>
+      <div class="toggles">
+        <button id="btnMic" type="button" aria-pressed="false">マイク: OFF</button>
+        <button id="btnCam" type="button" aria-pressed="false">カメラ: OFF</button>
+        <button id="btnQuality" type="button">品質: 中</button>
+      </div>
+      <p class="privacy">
+        ※ マイク/カメラは端末内処理のみ。録音/送信/保存は行いません。
+      </p>
+    </div>
+  </div>
+
+  <main aria-label="キャンバス領域"></main>
+
+  <script src="sketch.js"></script>
+</body>
+</html>

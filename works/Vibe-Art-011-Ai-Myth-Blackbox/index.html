@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI神話のブラックボックス｜ブラウザ体験</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/public/icons/spark.svg" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">AI神話のブラックボックス</div>
+      <nav class="actions">
+        <button id="openSettings" class="ghost">設定</button>
+        <button id="openDebrief" class="ghost">デブリーフィング</button>
+        <a class="ghost" href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="panel left">
+        <h1>神託を受ける</h1>
+        <p class="muted">マイクで問いを囁くか、テキスト入力してください。</p>
+        <div class="ask-box">
+          <textarea id="question" placeholder="例：私は何を手放すべきでしょう？"></textarea>
+          <div class="row">
+            <button id="micBtn" title="音声入力" class="icon-btn">
+              <img src="/public/icons/mic.svg" alt="mic" />
+            </button>
+            <button id="stopMicBtn" title="停止" class="icon-btn danger">
+              <img src="/public/icons/stop.svg" alt="stop" />
+            </button>
+            <button id="askBtn" class="primary">お告げを求める</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>ムード（演出強度）</h2>
+          <input id="mood" type="range" min="0" max="100" value="35" />
+          <small class="muted">※ 展示時の生体センサーの代替スライダー。音・光・文体に影響。</small>
+        </div>
+
+        <div class="card">
+          <h2>生成モード</h2>
+          <label class="row"><input type="radio" name="mode" value="local" checked /> ローカル擬似生成（オフライン）</label>
+          <label class="row"><input type="radio" name="mode" value="api" /> API経由（OpenAI等をサーバー経由で利用）</label>
+          <small class="muted">API利用には <code>server/</code> の起動と <code>.env</code> 設定が必要です。</small>
+        </div>
+
+        <div class="row">
+          <button id="enterVR" class="secondary">記憶の曼荼羅（VR）へ</button>
+        </div>
+      </section>
+
+      <section class="panel right">
+        <div class="oracle-header">
+          <img src="/public/icons/spark.svg" alt="spark" />
+          <h1 id="oracleTitle">——</h1>
+        </div>
+        <div id="oracleText" class="scroll sacred-text"></div>
+
+        <div class="gallery">
+          <canvas id="mandalaCanvas" width="1200" height="1200" class="mandala"></canvas>
+          <img id="oracleImage" alt="生成イメージ"/>
+        </div>
+
+        <div class="row">
+          <button id="speakBtn" class="secondary">朗読する</button>
+          <button id="stopSpeakBtn" class="ghost">停止</button>
+          <button id="saveImageBtn" class="ghost">曼荼羅を保存</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 設定モーダル -->
+    <dialog id="settingsModal" class="modal">
+      <form method="dialog">
+        <h3>設定</h3>
+        <label>サーバーURL（例: http://localhost:8787）
+          <input id="serverUrl" type="text" placeholder="http://localhost:8787" />
+        </label>
+        <label>画像生成もAPIに依頼
+          <input id="useApiImage" type="checkbox" />
+        </label>
+        <menu>
+          <button value="cancel">閉じる</button>
+          <button id="saveSettings" value="default">保存</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- デブリーフィング -->
+    <dialog id="debriefModal" class="modal wide">
+      <form method="dialog">
+        <h3>デブリーフィング（体験のあとに）</h3>
+        <div class="muted">
+          <p>いま目や耳にした神話とお告げは、AIがあなたの言葉や世界の断片から編んだフィクションです。AIには意識も感情もありません。ここでの体験は、あなたの内面を映す「心の鏡」です。</p>
+          <ul>
+            <li>現実の意思決定は、専門家や信頼できる人と相談しながら行ってください。</li>
+            <li>生成物は誤りを含む可能性があり、宗教的・文化的文脈の一般化を行うことがあります。</li>
+            <li>音声・テキスト入力は体験にのみ用いられ、保存は推奨しません。</li>
+          </ul>
+        </div>
+        <menu>
+          <button value="cancel">閉じる</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- VR オーバーレイ -->
+    <dialog id="vrModal" class="modal vr">
+      <form method="dialog">
+        <h3>記憶の曼荼羅（VR）</h3>
+        <p class="muted">キーワードを入力し、VR空間に投影します（例：「祖母と見た夕焼け」）。</p>
+        <div class="row">
+          <input id="memoryKeyword" type="text" placeholder="キーワード" />
+          <button id="renderVR" class="primary">投影</button>
+        </div>
+        <div id="vrContainer" class="vr-wrap">
+          <!-- A-Frame シーンを動的に挿入 -->
+        </div>
+        <menu>
+          <button value="cancel">閉じる</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

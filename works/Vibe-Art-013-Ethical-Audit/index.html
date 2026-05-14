@@ -1,0 +1,107 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>倫理的監査：AI×人間 協働の可視化 – Prototype</title>
+  <meta name="description" content="AI導入の倫理的トレードオフを、デジタル曼荼羅と都市シミュレーションで可視化するブラウザ作品プロトタイプ。" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♁</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: '#0b1020',
+            panel: '#11162a',
+            accent: '#6ee7b7',
+            danger: '#f87171',
+            warn: '#fbbf24',
+            info: '#60a5fa'
+          },
+          boxShadow: { soft: '0 10px 25px rgba(0,0,0,.25)' }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body class="bg-base text-white min-h-screen antialiased">
+  <svg width="0" height="0" aria-hidden="true">
+    <use href="./assets/icons.svg#icon-privacy"></use>
+  </svg>
+
+  <header class="sticky top-0 z-10 backdrop-blur bg-base/80 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+      <div class="text-2xl font-extrabold tracking-tight">倫理的監査：AI × 人間</div>
+      <div class="text-sm text-white/60">ブラウザ・インタラクティブアート プロトタイプ</div>
+      <div class="grow"></div>
+      <button id="btn-reset" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent">リセット</button>
+      <button id="btn-ethics" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent">原則</button>
+      <a href="https://github.com/" target="_blank" rel="noreferrer" class="px-3 py-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 focus:outline-none focus:ring-2 focus:ring-accent">GitHub</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Mandala + Choices -->
+    <section class="lg:col-span-2 grid grid-cols-1 xl:grid-cols-5 gap-6">
+      <div id="mandala-card" class="xl:col-span-3 bg-panel rounded-2xl p-4 shadow-soft">
+        <h2 class="font-semibold mb-2">デジタル曼荼羅（倫理指標）</h2>
+        <div class="text-white/60 text-sm mb-3">ホバーで選択肢の影響をプレビュー。クリックで決定。</div>
+        <div id="mandala" class="relative w-full aspect-square"></div>
+      </div>
+
+      <div id="choice-card" class="xl:col-span-2 bg-panel rounded-2xl p-4 shadow-soft flex flex-col">
+        <h2 class="font-semibold mb-2">現在のジレンマ</h2>
+        <div id="scenario-title" class="text-lg font-semibold"></div>
+        <p id="scenario-desc" class="text-white/70 text-sm mt-1"></p>
+        <div class="mt-4 space-y-3">
+          <button id="choice-a" class="w-full text-left p-4 rounded-xl bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent"></button>
+          <button id="choice-b" class="w-full text-left p-4 rounded-xl bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent"></button>
+        </div>
+        <div class="mt-auto pt-3 text-xs text-white/60">← / → で選択、Enter で決定</div>
+      </div>
+    </section>
+
+    <!-- Simulation + Oracle -->
+    <section class="lg:col-span-1 grid grid-rows-[auto,auto,1fr] gap-6">
+      <div class="bg-panel rounded-2xl p-4 shadow-soft">
+        <h2 class="font-semibold mb-2">都市シミュレーション</h2>
+        <canvas id="sim-canvas" class="w-full h-48 rounded-lg bg-black/40"></canvas>
+        <div class="text-xs text-white/60 mt-2">色相=プライバシー⇄安全 / 粒子密度=信頼 / 断絶=孤独 / 黒斑=搾取</div>
+      </div>
+
+      <div class="bg-panel rounded-2xl p-4 shadow-soft">
+        <h2 class="font-semibold mb-2">AIオラクル</h2>
+        <div id="oracle" class="text-sm leading-relaxed text-white/90"></div>
+      </div>
+
+      <div class="bg-panel rounded-2xl p-4 shadow-soft">
+        <h2 class="font-semibold mb-2">指標</h2>
+        <div id="metrics" class="grid grid-cols-2 gap-2 text-sm"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Ethics Panel -->
+  <aside id="ethics-panel" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-panel max-w-3xl w-full rounded-2xl p-6 shadow-soft relative">
+      <button id="btn-ethics-close" class="absolute top-3 right-3 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent">閉じる</button>
+      <h3 class="text-xl font-bold mb-2">AI 倫理原則（EU / 日本）</h3>
+      <div id="ethics-content" class="grid sm:grid-cols-2 gap-4 text-sm"></div>
+      <div class="text-xs text-white/60 mt-3">※ 作品内の指標へのマッピングは解釈の一例です</div>
+    </div>
+  </aside>
+
+  <!-- Debrief -->
+  <aside id="debrief-panel" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-4">
+    <div class="bg-panel max-w-2xl w-full rounded-2xl p-6 shadow-soft">
+      <h3 class="text-xl font-bold mb-2">デブリーフィング</h3>
+      <div id="debrief" class="text-sm space-y-2"></div>
+      <div class="mt-4 flex gap-2">
+        <button id="btn-debrief-close" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent">閉じる</button>
+        <button id="btn-restart" class="px-3 py-1.5 rounded-lg bg-accent/

@@ -1,0 +1,53 @@
+/* style.css */
+:root{
+  --fg:#e8ecf3; --fg-dim:#aab4c6; --bg:#070b12;
+  --glass:rgba(10,14,22,.42); --glass2:rgba(10,14,22,.62);
+  --accent:#7aa2ff; --accent2:#9b7aff;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",sans-serif; overflow:hidden}
+
+canvas{position:fixed; inset:0; z-index:0; display:block}
+
+.topbar{
+  position:fixed; left:0; right:0; top:0; height:56px; z-index:2;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:8px 12px; pointer-events:none;
+}
+.brand{display:flex; align-items:center; gap:10px; font-weight:600; color:var(--fg)}
+.brand .orb{width:10px; height:10px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
+  box-shadow:0 0 16px var(--accent);
+}
+.actions{display:flex; align-items:center; gap:10px; pointer-events:auto}
+.btn{
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  border:1px solid rgba(255,255,255,.18); color:var(--fg);
+  padding:8px 12px; border-radius:12px; cursor:pointer;
+  transition:transform .12s ease, background .2s ease;
+}
+.btn:hover{transform:translateY(-1px); background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.08))}
+.badge{color:var(--fg-dim); border:1px solid rgba(255,255,255,.12); padding:6px 10px; border-radius:999px; backdrop-filter: blur(8px); background: var(--glass); font-size:12px;}
+
+.panel{
+  position:fixed; left:16px; right:16px; bottom:16px; max-width:640px; z-index:2;
+  margin:0; padding:12px; border-radius:16px; backdrop-filter:blur(12px);
+  background:var(--glass); border:1px solid rgba(255,255,255,.12); box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+.messages{max-height:220px; overflow:auto; display:flex; flex-direction:column; gap:10px; padding:6px}
+.msg{display:flex; flex-direction:column; gap:4px}
+.msg .who{font-size:12px; color:var(--fg-dim)}
+.msg .bubble{
+  padding:10px 12px; border-radius:12px; line-height:1.5; font-size:14px; white-space:pre-wrap; word-break:break-word;
+  border:1px solid rgba(255,255,255,.14);
+}
+.msg.user .bubble{ background:var(--glass2)}
+.msg.ai .bubble{ background:rgba(120,160,255,.12); border-color:rgba(125,155,255,.18)}
+.composer{display:flex; gap:8px; margin-top:10px}
+.composer input{flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:var(--fg)}
+.hint{margin:6px 6px 0; color:var(--fg-dim); font-size:12px}
+
+@media (min-width: 860px){
+  .panel{left:16px; right:auto; width:640px}
+}

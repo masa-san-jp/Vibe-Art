@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ノスタルジー・ランドスケープ（p5.js・単一HTML）</title>
+  <!-- p5.js（CDN）。※完全オフラインにする場合は、この内容をローカルに保存して <script> にインライン貼付でも動作します -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; padding: 0; height: 100%; background:#000; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif; }
+    #ui {
+      position: fixed; inset: 0; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 600px at 50% 40%, rgba(10,10,12,.85), rgba(4,4,6,.95));
+      color:#eaeaea; z-index: 10;
+    }
+    .panel {
+      width:min(680px, 92vw); border:1px solid #2d2d2d; border-radius:16px; padding:20px 18px; background:rgba(12,12,16,.65); backdrop-filter: blur(8px);
+      box-shadow: 0 6px 30px rgba(0,0,0,.35);
+    }
+    h1 { margin:0 0 6px; font-size: 20px; }
+    p.desc { margin:0 0 12px; color:#a7a7a7; font-size: 13px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0; align-items: center; }
+    label, .hint { font-size: 13px; color:#cfcfcf; }
+    textarea, input[type="text"], input[type="number"] {
+      width: 100%; background:#0e0e13; color:#eee; border:1px solid #2a2a33; border-radius:10px; padding:10px; font-size: 14px;
+    }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+    .chip { padding:6px 10px; border-radius:999px; border:1px solid #3a3a45; cursor:pointer; user-select:none; font-size:12px; }
+    .chip.active { background:#ffb020; border-color:#ffb020; color:#141414; }
+    .actions { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-top:8px; }
+    .btn {
+      background:#ffb020; color:#141414; border:none; border-radius:12px; padding:10px 16px; font-weight:700; cursor:pointer; font-size: 14px;
+    }
+    .btn:disabled { opacity: .5; cursor:not-allowed; }
+    .mutetoggle { font-size:12px; color:#aaa; display:flex; gap:6px; align-items:center; }
+    .timer { position: fixed; top: 10px; right: 12px; font-size: 12px; padding:6px 10px; border:1px solid #2a2a33; border-radius:8px; background:rgba(10,10,12,.5); color:#ddd; z-index:5; }
+    .debrief {
+      position: fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.75); z-index: 12; color:#eee;
+    }
+    .debrief .box{ width:min(560px,90vw); background:#0f0f12; border:1px solid #2a2a33; border-radius:16px; padding:18px; }
+    .debrief h2{ margin:0 0 8px; font-size:18px; }
+    .debrief p{ font-size:14px; color:#c9c9c9; }
+    .grain::before{ content:""; position:fixed; inset:0; pointer-events:none; opacity:.25; mix-blend-mode:soft-light;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="64" height="64" filter="url(%23n)" opacity="0.065"/></svg>'); }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div class="panel">
+      <h1>ノスタルジー・ランドスケープ</h1>
+      <p class="desc">個人の記憶キーワードと文化モチーフから、郷愁的な風景と音を合成します（ローカル処理／音は合成生成）。</p>
+      <div class="row">
+        <label class="w-full">記憶プロンプト</label>
+        <textarea id="prompt" rows="3" placeholder="例：祖母の家の縁側で、夕暮れに風鈴が鳴っていた"></textarea>
+      </div>
+      <div class="row">
+        <label>文化モチーフ</label>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="row" style="justify-content: space-between;">
+        <label class="mutetoggle"><input type="checkbox" id="consent"> 本体験はAIによる擬似生成を含みます（同意）</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label>分</label>
+          <input type="number" id="minutes" min="2" max="15" value="3" style="width:64px; text-align:right;" />
+        </div>
+      </div>
+      <div class="actions">
+        <label class="mutetoggle"><input type="checkbox" id="mute"> ミュートで開始</label>
+        <button id="start" class="btn">体験をはじめる</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">* データはブラウザ内で処理されます。外部API・外部音源は使用しません。</div>
+    </div>
+  </div>
+
+  <div id="timer" class="timer" style="display:none;">残り 3:00</div>
+  <div id="debrief" class="debrief">
+    <div class="box">
+      <h2>デブリーフィング</h2>
+      <p>この体験にはAIによる擬似生成が含まれます。現実の記憶との区別にご留意ください。</p>
+      <div class="hint" id="summary" style="margin-top:10px; white-space: pre-wrap;"></div>
+    </div>
+  </div>
+
+  <div class="grain" id="sketch-holder"></div>
+
+<script>
+/**
+ * p5.js VISUALS + 原生 Web Audio（合成音）
+ * - 外部ファイル・外部APIなしで完結。
+ * - p5.js 本体だけCDN読込。完全単一ファイルが必要なら p5.min.js をインライン貼付してください。
+ */
+
+// ===== UI =====
+const MOTIFS = [
+  { id: 'satoyama', label: '里山' },
+  { id: 'summer',  label: '夏の終わり' },
+  { id: 'festival',label: '祭り' },
+  { id: 'ocean',   label: '海辺' },
+  { id: 'train',   label: '汽笛／鉄道' },
+];
+const selected = new Set();
+
+function renderChips() {
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  MOTIFS.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'chip' + (selected.has(m.id) ? ' active' : '');
+    el.textContent = m.label;
+    el.onclick = () => { if (selected.has(m.id)) selected.delete(m.id); else selected.add(m.id); renderChips(); };
+    chips.appendChild(el);
+  });
+}
+renderChips();
+
+// ===== Web Audio（合成音） =====
+let ctx, master, reverb, reverbGain, cricketBus, oceanBus, drumBus, hornBus;
+let running = false, muted = false;
+let chimeTimer = null, drumTimer = null, hornTimer = null;
+
+function makeContext() {
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  master = ctx.createGain(); master.gain.value = muted ? 0 : 0.7; master.connect(ctx.destination);
+  // 簡易リバーブ（ノイズIR）
+  reverb = ctx.createConvolver();
+  reverb.buffer = makeImpulseResponse(2.8, 2.0); // 長めの残響
+  reverbGain = ctx.createGain(); reverbGain.gain.value = 0.35; reverb.connect(reverbGain).connect(master);
+  // Buses
+  cricketBus = ctx.createGain(); cricketBus.gain.value = 0.55; cricketBus.connect(master); cricketBus.connect(reverb);
+  oceanBus   = ctx.createGain(); oceanBus.gain.value = 0.35; oceanBus.connect(master); oceanBus.connect(reverb);
+  drumBus    = ctx.createGain(); drumBus.gain.value = 0.28; drumBus.connect(master); drumBus.connect(reverb);
+  hornBus    = ctx.createGain(); hornBus.gain.value = 0.18; hornBus.connect(master); hornBus.connect(reverb);
+}
+
+function makeImpulseResponse(duration=2.0, decay=2.0) {
+  const rate = ctx.sampleRate, len = rate * duration, impulse = ctx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const buf = impulse.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      buf[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+  }
+  return impulse;
+}
+
+// --- 合成音：虫の声（短い高音パルスの群れを断続） ---
+let cricketLoopCancel = null;
+function startCrickets() {
+  let cancelled = false;
+  cricketLoopCancel = () => { cancelled = true; };
+
+  const scheduleCluster = (t0) => {
+    if (cancelled) return;
+    const pulses = 4 + Math.floor(Math.random()*4); // 4-7発
+    const base = 5000 + Math.random()*1800; // 高めの周波数
+    for (let i=0;i<pulses;i++) {
+      const at = t0 + i*0.045 + Math.random()*0.005;
+      const freq = base + Math.random()*400;
+      const dur = 0.035;
+      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(freq, at);
+      const bp  = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(freq, at); bp.Q.value = 8;
+      const g   = ctx.createGain(); g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.6, at + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      osc.connect(bp).connect(g).connect(cricketBus);
+      osc.start(at); osc.stop(at + dur + 0.01);
+    }
+    const next = t0 + 0.7 + Math.random()*0.9; // 群れの間隔
+    setTimeout(() => scheduleCluster(next), (next - ctx.currentTime)*1000);
+  };
+
+  scheduleCluster(ctx.currentTime + 0.1);
+}
+
+// --- 合成音：風鈴（複数の部分音 + リバーブ） ---
+function ringChime() {
+  const base = [880, 987, 784][Math.floor(Math.random()*3)];
+  const partials = [1.0, 1.5, 2.05, 2.63];
+  partials.forEach((p, idx) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = base * p * (1 + (Math.random()-0.5)*0.02);
+    const g = ctx.createGain(); const t = ctx.currentTime; const a = 0.005, d = 1.8 + Math.random()*0.8;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.6/(idx+1), t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    const hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 600;
+    osc.connect(hp).connect(g).connect(reverb);
+    osc.start(t); osc.stop(t + d + 0.1);
+  });
+}
+
+function startRandomChimes(active) {
+  if (chimeTimer) clearTimeout(chimeTimer);
+  const loop = () => {
+    if (!active()) return; ringChime();
+    const wait = 5 + Math.random()*15; // 5-20秒
+    chimeTimer = setTimeout(loop, wait*1000);
+  };
+  chimeTimer = setTimeout(loop, (3+Math.random()*5)*1000);
+}
+
+// --- 合成音：祭り太鼓（低音の短打） ---
+function boomDrum() {
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(110, t);
+  osc.frequency.exponentialRampToValueAtTime(70, t + 0.25);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.8, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 500;
+  osc.connect(lp).connect(g).connect(drumBus);
+  osc.start(t); osc.stop(t + 0.5);
+}
+
+function startRandomDrums(active) {
+  if (drumTimer) clearTimeout(drumTimer);
+  const loop = () => {
+    if (!active()) return; if (Math.random()<0.7) boomDrum();
+    drumTimer = setTimeout(loop, (1.2 + Math.random()*1.6)*1000);
+  };
+  drumTimer = setTimeout(loop, 2000);
+}
+
+// --- 合成音：海の波（低域ノイズ + LFO） ---
+let oceanSource = null, oceanLFO = null, oceanLFOGain = null;
+function startOcean() {
+  const buf = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i=0;i<data.length;i++) data[i] = (Math.random()*2 - 1);
+  oceanSource = ctx.createBufferSource(); oceanSource.buffer = buf; oceanSource.loop = true;
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 380; lp.Q.value = 0.7;
+  const gain = ctx.createGain(); gain.gain.value = 0.18;
+  oceanLFO = ctx.createOscillator(); oceanLFO.frequency.value = 0.07; // 0.07Hz
+  oceanLFOGain = ctx.createGain(); oceanLFOGain.gain.value = 0.12; // 変動幅
+  oceanLFO.connect(oceanLFOGain).connect(gain.gain);
+  oceanSource.connect(lp).connect(gain).connect(oceanBus);
+  oceanSource.start(); oceanLFO.start();
+}
+function stopOcean() {
+  try { oceanSource && oceanSource.stop(); } catch(e){}
+  oceanSource = null; oceanLFO && oceanLFO.stop(); oceanLFO=null;
+}
+
+// --- 合成音：汽笛（滑らかなグリッサンド） ---
+function honkHorn() {
+  const t = ctx.currentTime + 0.1;
+  const f0 = [220, 330][Math.floor(Math.random()*2)];
+  const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(f0, t);
+  osc.frequency.linearRampToValueAtTime(f0*1.18, t + 1.8);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.2);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+  const bp = ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value = f0*1.2; bp.Q.value = 1.8;
+  osc.connect(bp).connect(g).connect(hornBus);
+  osc.start(t); osc.stop(t + 2.3);
+}
+function startRandomHorns(active) {
+  if (hornTimer) clearTimeout(hornTimer);
+  const loop = () => {
+    if (!active()) return; if (Math.random()<0.3) honkHorn();
+    hornTimer = setTimeout(loop, (6 + Math.random()*10)*1000);
+  };
+  hornTimer = setTimeout(loop, 4000);
+}
+
+function stopAudio() {
+  if (!ctx) return;
+  if (chimeTimer) { clearTimeout(chimeTimer); chimeTimer = null; }
+  if (drumTimer)  { clearTimeout(drumTimer);  drumTimer  = null; }
+  if (hornTimer)  { clearTimeout(hornTimer);  hornTimer  = null; }
+  if (cricketLoopCancel) cricketLoopCancel();
+  stopOcean();
+  // フェードアウト
+  const t = ctx.currentTime; master.gain.cancelScheduledValues(t);
+  master.gain.setValueAtTime(master.gain.value, t);
+  master.gain.exponentialRampToValueAtTime(0.0001, t + 1.0);
+}
+
+// ===== p5.js VISUALS =====
+let fireflies = [], blades = [];
+let hueA = 0.08, hueB = 0.62; // 0..1 (approx hue for gradient)
+let timeOfDay = 'sunset'; // 'dawn'|'sunset'|'night'
+let showFireflies = true, showWaves = false; let showFestival=false;
+let sessionMs = 180000; let startMs = 0; let finished = false;
+
+function h2rgb(h) { // simple hue to rgb (approx HSV with s=1,v=1)
+  let r = Math.abs(h*6-3)-1;
+  let g = 2-Math.abs(h*6-2);
+  let b = 2-Math.abs(h*6-4);
+  r = Math.max(0, Math.min(1,r));
+  g = Math.max(0, Math.min(1,g));
+  b = Math.max(0, Math.min(1,b));
+  return [r*255,g*255,b*255];
+}
+
+function setup() {
+  const holder = document.getElementById('sketch-holder');
+  const cnv = createCanvas(window.innerWidth, window.innerHeight);
+  cnv.parent(holder);
+  frameRate(60);
+}
+
+function windowResized(){
+  resizeCanvas(window.innerWidth, window.innerHeight);
+}
+
+function buildSceneFrom(tags, prompt) {
+  // time & hues
+  if (tags.has('summer')) timeOfDay = 'sunset';
+  else if (tags.has('ocean')) timeOfDay = 'dawn';
+  else timeOfDay = 'night';
+  hueA = (timeOfDay==='sunset')? 0.08 : (timeOfDay==='dawn'? 0.58 : 0.72);
+  hueB = (timeOfDay==='sunset')? 0.02 : (timeOfDay==='dawn'? 0.62 : 0.85);
+  showFireflies = tags.has('summer') || tags.has('satoyama') || /蛍|firefly/.test(prompt);
+  showWaves = tags.has('ocean') || /海|波|ocean/.test(prompt);
+  showFestival = tags.has('festival') || /祭|festival/.test(prompt);
+
+  // blades (grass)
+  blades = [];
+  for (let x=0; x<width; x+=8) {
+    if (random() < 0.7) blades.push({ x, h: random(50, 150), phase: random(1000), sway: random(6,14) });
+  }
+
+  // fireflies
+  fireflies = [];
+  for (let i=0;i< (showFireflies? 36:12); i++) {
+    fireflies.push({ x: random(width), y: random(height*0.3, height*0.8), phase: random(TWO_PI), speed: random(0.3,1.0), flick: random(0.5,1.4) });
+  }
+}
+
+function drawGradient() {
+  const [rA,gA,bA] = h2rgb(hueA); const [rB,gB,bB] = h2rgb(hueB);
+  for (let y=0; y<height; y++) {
+    const t = y/height;
+    const r = lerp(rA, rB, t), g = lerp(gA, gB, t), b = lerp(bA, bB, t);
+    stroke(r,g,b); line(0,y,width,y);
+  }
+}
+
+function drawGrass() {
+  stroke(10); strokeWeight(2);
+  for (const bl of blades) {
+    const t = frameCount*0.01;
+    const sway = map(noise(bl.phase + t), 0, 1, -bl.sway, bl.sway);
+    line(bl.x, height, bl.x+sway, height - bl.h);
+  }
+}
+
+function drawFireflies() {
+  noStroke();
+  for (const fl of fireflies) {
+    fl.x += random(-0.5,0.5)*fl.speed; fl.y += random(-0.3,0.3)*fl.speed;
+    if (fl.x<0) fl.x=width; if (fl.x>width) fl.x=0; if (fl.y<0) fl.y=0; if (fl.y>height*0.9) fl.y=height*0.9;
+    const theta = TWO_PI*fl.flick*(millis()/1000) + fl.phase; const k = (sin(theta)+1)/2; // 0..1
+    drawingContext.shadowBlur = 20; drawingContext.shadowColor = color(255, 240, 160, 160*k);
+    fill(255, 240, 200, 255*(0.2+0.8*k)); ellipse(fl.x, fl.y, 8, 8);
+  }
+  drawingContext.shadowBlur = 0;
+}
+
+function drawWaves() {
+  noFill(); stroke(255,255,255,28); strokeWeight(1.5);
+  const t = millis()/1000;
+  for (let y=height*0.65; y<height*0.9; y+=10) {
+    beginShape();
+    for (let x=0; x<=width; x+=16) {
+      const n = noise(x*0.003, y*0.01, t*0.2);
+      const off = map(n, 0, 1, -6, 6) + sin((x*0.01)+(t*1.2))*3;
+      vertex(x, y + off);
+    }
+    endShape();
+  }
+}
+
+function draw() {
+  if (!running) return;
+  drawGradient();
+  drawGrass();
+  if (showWaves) drawWaves();
+  if (showFireflies) drawFireflies();
+
+  // timer + auto-finish
+  const left = Math.max(0, sessionMs - (millis() - startMs));
+  if (left <= 0 && !finished) finishExperience();
+  const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000).toString().padStart(2,'0');
+  const timer = document.getElementById('timer'); timer.textContent = `残り ${m}:${s}`;
+}
+
+function finishExperience(){
+  finished = true; running = false; noLoop(); stopAudio();
+  // overlay message
+  push(); fill(0, 180); noStroke(); rect(0,0,width,height); pop();
+  const d = document.getElementById('debrief');
+  d.style.display='flex';
+  const prm = (document.getElementById('prompt').value||'（未入力）').trim();
+  const tags = [...selected].join(', ')||'（なし）';
+  const minutes = document.getElementById('minutes').value;
+  document.getElementById('summary').textContent = `入力：${prm}\nモチーフ：${tags}\nセッション長：${minutes}分\n生成方式：ローカル合成（音・画像とも）`;
+}
+
+// ===== Start Button =====
+const startBtn = document.getElementById('start');
+startBtn.addEventListener('click', async () => {
+  const ok = document.getElementById('consent').checked;
+  if (!ok) { alert('同意が必要です。'); return; }
+  muted = document.getElementById('mute').checked;
+  sessionMs = Math.max(120000, Math.min(900000, Number(document.getElementById('minutes').value)*60000));
+  const promptText = (document.getElementById('prompt').value||'').toLowerCase();
+
+  // VISUAL params
+  buildSceneFrom(selected, promptText);
+
+  // Web Audio init
+  makeContext();
+  if (!muted) {
+    startCrickets();
+    startRandomChimes(()=>running);
+    if (selected.has('festival')) startRandomDrums(()=>running);
+    if (selected.has('ocean'))   startOcean();
+    if (selected.has('train'))   startRandomHorns(()=>running);
+  }
+
+  // UI 切替
+  document.getElementById('ui').style.display='none';
+  document.getElementById('timer').style.display='block';
+  // Run
+  startMs = millis(); finished = false; running = true; loop();
+});
+</script>
+</body>
+</html>

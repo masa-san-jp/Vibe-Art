@@ -1,0 +1,231 @@
+### `tools/simulate.py`
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+simulate.py
+参加者の電子シミュレーションを行い、体験ページ(HTML)・曼荼羅(PNG)・音響(WAV)・物語(TXT)を出力する。
+"""
+import argparse, json
+from pathlib import Path
+
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+# ------------------------- Helpers -------------------------
+def save_wav_mono(path: Path, y: np.ndarray, sr: int = 44100):
+    import wave
+    y = np.clip(y, -1.0, 1.0)
+    data = (y * 32767).astype(np.int16)
+    with wave.open(str(path), "w") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        wf.writeframes(data.tobytes())
+
+def ambient(base_freq=220.0, duration=120, sr=44100, seed=0, bells=True, rain=False):
+    rng = np.random.default_rng(seed)
+    t = np.linspace(0.0, duration, int(sr * duration), endpoint=False)
+    # Drone: root + fifth + major third
+    osc1 = np.sin(2 * np.pi * base_freq * t)
+    osc2 = 0.6 * np.sin(2 * np.pi * base_freq * 1.5 * t)
+    osc3 = 0.5 * np.sin(2 * np.pi * base_freq * 1.25 * t)
+    y = (osc1 + osc2 + osc3) / 2.5
+    # Slow tremolo
+    trem = 0.5 * (1.0 + np.sin(2 * np.pi * rng.uniform(0.06, 0.15) * t))
+    y *= (0.8 + 0.2 * trem)
+    # Optional rain/noise
+    if rain:
+        noise = rng.normal(0, 1, len(t))
+        k = 4096
+        c = np.cumsum(np.insert(noise, 0, 0))
+        low = (c[k:] - c[:-k]) / k
+        low = np.pad(low, (k // 2, len(t) - len(low) - k // 2), mode="edge")
+        y += 0.05 * low
+    # Soft bells
+    if bells:
+        for _ in range(6):
+            start = rng.uniform(5, max(6, duration - 5))
+            idx = int(start * sr)
+            L = int(sr * 1.8)
+            tt = np.arange(L) / sr
+            f = base_freq * 2.0 * rng.uniform(1.0, 1.4)
+            bell = np.sin(2 * np.pi * f * tt) * np.exp(-tt * 1.5)
+            end = min(idx + L, len(y))
+            y[idx:end] += 0.07 * bell[: end - idx]
+    # Fade in/out
+    fade = int(sr * 3.0)
+    env = np.ones_like(y)
+    env[:fade] = np.linspace(0, 1, fade)
+    env[-fade:] = np.linspace(1, 0, fade)
+    y *= env
+    # Normalize
+    y = 0.7 * (y / (np.max(np.abs(y)) + 1e-9))
+    return y
+
+def hex_to_rgb01(h: str):
+    h = h.lstrip("#")
+    return tuple(int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+def draw_mandala(path: Path, seed: int, palette_hex, symbols):
+    rng = np.random.default_rng(seed)
+    palette = [hex_to_rgb01(c) for c in palette_hex]
+    fig = plt.figure(figsize=(6, 6), dpi=300)
+    ax = plt.axes([0, 0, 1, 1])
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.axis("off")
+    ax.set_facecolor((0.02, 0.02, 0.05))
+
+    # base geometry
+    for i in range(9):
+        r = 0.06 + 0.05 * i
+        ax.add_patch(plt.Circle((0.5, 0.5), r, fill=False, lw=1.2, color=palette[i % len(palette)], alpha=0.65))
+    for k in range(48):
+        ang = 2 * np.pi * k / 48
+        x = 0.5 + 0.47 * np.cos(ang)
+        y = 0.5 + 0.47 * np.sin(ang)
+        ax.plot([0.5, x], [0.5, y], lw=0.6, color=palette[k % len(palette)], alpha=0.22)
+    t = np.linspace(0, 2 * np.pi * 6, 1800)
+    r = np.linspace(0.01, 0.47, len(t))
+    ax.plot(0.5 + r * np.cos(t), 0.5 + r * np.sin(t), lw=1.0, alpha=0.5, color=palette[0])
+
+    # symbolic overlays
+    joined = " ".join(symbols)
+    if "雨" in joined:
+        for _ in range(120):
+            xx = rng.uniform(0.1, 0.9)
+            y0 = rng.uniform(0.1, 0.9)
+            y1 = y0 - rng.uniform(0.01, 0.03)
+            ax.plot([xx, xx], [y0, y1], lw=0.8, color="#88ccff", alpha=0.5)
+    if "電車" in joined:
+        rad = 0.36
+        for i in range(18):
+            ang = 2 * np.pi * i / 18
+            w, h = 0.05, 0.02
+            cx = 0.5 + rad * np.cos(ang)
+            cy = 0.5 + rad * np.sin(ang)
+            ax.add_patch(plt.Rectangle((cx - w / 2, cy - h / 2), w, h, angle=np.degrees(ang), color="#ff3344", alpha=0.35))
+    if "灯台" in joined:
+        theta0 = np.deg2rad(20); theta1 = np.deg2rad(40); rr = 0.48
+        tt = np.linspace(theta0, theta1, 100)
+        X = 0.5 + rr * np.cos(tt); Y = 0.5 + rr * np.sin(tt)
+        ax.fill(np.concatenate([[0.5], X, [0.5]]), np.concatenate([[0.5], Y, [0.5]]), color="#ffee99", alpha=0.25)
+
+    fig.savefig(path, facecolor=ax.get_facecolor(), dpi=300, bbox_inches="tight", pad_inches=0.0)
+    plt.close(fig)
+
+HTML_TEMPLATE = """<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>DSP - __PID__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#0a0b11; --card:#12131b; --fg:#eaeaf0; --muted:#b7bcc7; }
+  body { background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif; margin:0; padding:24px; line-height:1.9; }
+  main { max-width: 980px; margin: 0 auto; }
+  .card { background:var(--card); border-radius:16px; padding:16px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  img { width:100%; display:block; border-radius:12px; }
+  .story { white-space: pre-wrap; font-size:1.05rem; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 14px 0; }
+  .tag { font-size:.85rem; color:var(--muted); background: #0f1018; border:1px solid #1b1d2a; padding:4px 8px; border-radius: 999px; }
+  .grid { display:grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 820px){ .grid { grid-template-columns: 1fr 1fr; } }
+  a { color:#9fd1ff; }
+</style>
+<main>
+  <h1>AIと自己変容の対話的儀式：デジタル・シャイニングパス</h1>
+  <div class="card"><img src="mandala.png" alt="内観図（曼荼羅）"><h2>__PID__ / __TITLE__</h2></div>
+  <section class="grid">
+    <section class="card"><h2>自己再生の物語</h2><div class="story">__STORY__</div></section>
+    <section class="card">
+      <h2>サウンドスケープ</h2>
+      <audio controls src="ambient.wav" preload="auto" style="width:100%"></audio>
+      <h2>キーワード</h2><div class="tags">__TAGS1__</div>
+      <h2>象徴</h2><div class="tags">__TAGS2__</div>
+    </section>
+  </section>
+</main>
+</html>
+"""
+
+def write_html(out_path: Path, pid: str, title: str, story: str, keywords, symbols):
+    tags1 = "".join([f"<span class='tag'>{k}</span>" for k in keywords])
+    tags2 = "".join([f"<span class='tag'>{s}</span>" for s in symbols])
+    s = (HTML_TEMPLATE
+         .replace("__PID__", pid)
+         .replace("__TITLE__", title)
+         .replace("__STORY__", story)
+         .replace("__TAGS1__", tags1)
+         .replace("__TAGS2__", tags2))
+    out_path.write_text(s, encoding="utf-8")
+
+# -------------------- Defaults (simulated participants) --------------------
+DEFAULT_PARTICIPANTS = [
+    {"pid":"p01","title":"夏の雨と祖母の台所","keywords":["雨音","台所の灯","薄荷","帰路"],"symbols":["雨","台所","包丁"],"palette":["#4cc9f0","#4895ef","#4361ee","#bde0fe","#ffffff"],"base_freq":293.66,"with_rain":True},
+    {"pid":"p02","title":"赤い電車と忘れたノート","keywords":["発車ベル","赤い車体","ページ","トンネル"],"symbols":["赤い電車","ノート","トンネル"],"palette":["#ff4d6d","#c9184a","#590d22","#f5e6e8","#ffd6e0"],"base_freq":369.99,"with_rain":False},
+    {"pid":"p03","title":"海辺の夜と青い灯","keywords":["潮風","灯台","砂の気配","貝殻"],"symbols":["灯台","貝殻","青い灯","風"],"palette":["#0ea5e9","#1e3a8a","#38bdf8","#a5f3fc","#fbbf24"],"base_freq":440.00,"with_rain":False}
+]
+
+STORIES = {
+"p01":"あなたは窓辺に座り、濡れた路地を流れる雨を追う。祖母の台所の灯りが思い出の奥から滲み出す。心の奥で、小さく声が言う。「雨の日は、匂いで昔に戻る」。湯気は青磁の湯のみから立ちのぼり、薄荷の香りが胸の中の固さをほどく。包丁の音は一定の拍で、遠い列車のように脈を刻む。あなたは同じ拍で呼吸を合わせる。壁のカレンダーは開かれぬまま、夏の頁に指先が止まっている。「台所の明かりは、私の灯台だった」と、もう一つの声。扉の隙間から、あの日のあなたが現れて、濡れた袖を絞り、笑ってこちらを見る。彼女は手渡す——薄いミントの葉。あなたはそれを舌にのせ、冷たさの向こうに微かな甘さを見つける。雨はさらに細かく、静けさを増幅する粒となって降る。あなたは気づく。包丁の打音は恐れではなく、刻むという約束の音だったことを。「私はまだ包丁の音を知っている」。それは戻るための呪文ではなく、進むための合図。台所の床は川へと変わり、川は道へ、道は雨雲の裏側へつづく。あなたは湯気の白に手を伸ばし、触れる。葉脈のようにひろがる光が、胸の奥に一筋の通り道を開ける。祖母の影は遠のき、しかし消えない。今度はあなたが灯台になる番だ。雨はやむ。残ったのは、湿った空気と、使い終えた布巾のやわらかさ。そこに帰路が生まれる。あなたは歩きはじめる。",
+"p02":"ホームの端、赤い車体が曇った朝を映す。あなたはノートを開こうとして、白いページがないことに気づく。「あれ、どこに置いたっけ」——小さな独り言が靴の音に紛れる。発車ベル、短い息、そして遅延のアナウンス。トンネルの口は静かな獣のように黒く、しかし飲み込むためだけに開いてはいない。あなたは空の手でページをめくる仕草を試し、指先に紙のささやきを想像する。そのとき、頭上でカラスが二声、風向きを変えるように鳴く。「書けなかったことは、書かなくてよかったこと？」と心の奥の声が問う。電車が滑り込み、赤が視界を横切る。あなたの身体は乗る／留まるの分岐を一瞬で通過し、気づけば車内の窓ガラスに映る。そこに、忘れたはずのノート——いや、ノートの形をした余白が、自分の胸の内側に開いているのを見つける。「消えたページは、書き直すための余白だったのかもしれない」。車輪は暗いトンネルを軽く叩き、一定のリズムで先へ先へと運ぶ。あなたはポケットの中のペンを握る。インクは乾いていない。駅に着くたび、誰かが降り、誰かが乗る。あなたの番が来たとき、ページはもう白くはない。最初の一行は、発車ベルの長さと同じだ。",
+"p03":"夜の砂に座ると、潮風が音を磨く。あなたは遠くの灯台を見上げ、青い灯が呼吸のように明滅するのを数える。「海は、私の時間をゆっくりにする」と、誰かの昔の声が、波に混ざって戻ってくる。掌には貝殻、渦の線は、眠りかけの心をゆっくり中心へ集める螺旋。風はあなたの輪郭を薄くし、代わりに内側の輪郭を濃くする。「帰る場所は、まだ名前を持たなくていい」。灯は少しだけ強くなり、細い道の一部を照らす。あなたは立ち上がり、その道を数歩だけ歩く。砂は沈み、足跡は波で消える。消えることが、残ることの別名である夜、あなたは胸の中の灯台を見つける。それは青く、しかし冷たくはない。潮の香りと、遠雷の低い鼓動が、身体の中心を静かに温める。「明日という名の陸地は、ここから見える」。灯はもう一度点り、今度はあなたの歩幅に合わせてゆっくりと。"
+}
+
+# -------------------- Build index & run --------------------
+def make_index(root: Path, parts):
+    html = [
+        "<!doctype html><html lang='ja'><meta charset='utf-8'>",
+        "<title>DSP（シミュレーション）</title>",
+        "<style>body{background:#0b0b10;color:#eef;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans JP',sans-serif;margin:0;padding:32px;line-height:1.9}main{max-width:980px;margin:0 auto}.grid{display:grid;gap:16px;grid-template-columns:1fr}@media(min-width:840px){.grid{grid-template-columns:1fr 1fr 1fr}}.card{background:#12131b;border-radius:16px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}a{color:#a8d5ff}</style><main><h1>デジタル・シャイニングパス</h1><div class='grid'>"
+    ]
+    for p in parts:
+        html.append(f"<div class='card'><h2>{p['pid']} / {p['title']}</h2><p><a href='{p['pid']}/index.html'>体験ページ</a></p></div>")
+    html.append("</div></main></html>")
+    (root / "index.html").write_text("\n".join(html), encoding="utf-8")
+
+def run(out_dir: Path, parts, duration=60):
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest = []
+    for i, p in enumerate(parts):
+        pdir = out_dir / p["pid"]
+        pdir.mkdir(parents=True, exist_ok=True)
+
+        story = STORIES.get(p["pid"], f"{p['title']} —— ここに神話的物語が入ります。")
+        (pdir / "story.txt").write_text(story, encoding="utf-8")
+
+        draw_mandala(pdir / "mandala.png", seed=1234 + i, palette_hex=p["palette"], symbols=p["symbols"])
+
+        y = ambient(base_freq=p["base_freq"], duration=duration, seed=20250811 + i, bells=True, rain=p.get("with_rain", False))
+        save_wav_mono(pdir / "ambient.wav", y)
+
+        write_html(pdir / "index.html", pid=p["pid"], title=p["title"], story=story, keywords=p["keywords"], symbols=p["symbols"])
+
+        manifest.append({
+            "participant": p["pid"],
+            "title": p["title"],
+            "page": str(pdir / "index.html"),
+            "image": str(pdir / "mandala.png"),
+            "audio_wav": str(pdir / "ambient.wav"),
+            "story_txt": str(pdir / "story.txt")
+        })
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    make_index(out_dir, parts)
+    return manifest
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--participants", type=int, default=3)
+    ap.add_argument("--out", type=str, default="./DSP_Sim")
+    ap.add_argument("--duration", type=int, default=60)
+    args = ap.parse_args()
+
+    parts = DEFAULT_PARTICIPANTS[: args.participants]
+    out_dir = Path(args.out)
+    manifest = run(out_dir, parts, duration=args.duration)
+    print(json.dumps(manifest, ensure_ascii=False, indent=2))
+
+if __name__ == "__main__":
+    main()

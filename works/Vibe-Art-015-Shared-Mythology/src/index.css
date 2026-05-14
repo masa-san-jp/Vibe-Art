@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ring: 255 255 255;
+}
+
+/* マンダラ風の柔らかな光彩背景 */
+.mandala-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(1200px 800px at 50% 50%, rgba(255,255,255,0.06), transparent 40%),
+    conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,0.04) 0deg, rgba(255,255,255,0.15) 120deg, rgba(255,255,255,0.04) 240deg, rgba(255,255,255,0.04) 360deg),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 60%);
+  filter: saturate(1.1) contrast(1.05);
+  pointer-events: none;
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/10 shadow-xl;
+}
+
+.scroll-smooth {
+  scroll-behavior: smooth;
+}

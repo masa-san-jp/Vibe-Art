@@ -1,0 +1,45 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>デジタル祖霊の共鳴 – Interactive Web Art</title>
+  <!-- p5.js（本作は p5.sound を使わず Web Audio API で実装＝AudioWorklet不要） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="orb"></span>
+      <span>デジタル祖霊の共鳴 / Digital Ancestral Resonance</span>
+    </div>
+    <div class="actions">
+      <button id="btnMic" class="btn">🎙 マイク有効化</button>
+      <button id="btnCam" class="btn">📷 カメラ有効化（任意）</button>
+      <span class="badge">※ シミュラクラ（模倣）</span>
+    </div>
+  </header>
+
+  <!-- Chat UI -->
+  <div id="chat-container" class="panel">
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <form id="chatForm" class="composer" autocomplete="off">
+      <input id="user-input" type="text" placeholder="想いを言葉にしてみてください…（Enterで送信）" maxlength="240"/>
+      <button id="send-btn" class="btn" type="submit">送信</button>
+    </form>
+    <p class="hint">
+      Hキーでこのパネルの表示/非表示を切替。マイクを有効化すると、環境音／声に映像が反応します。
+    </p>
+  </div>
+
+  <!-- Hidden camera video (optional) -->
+  <video id="camVideo" width="320" height="240" autoplay playsinline muted style="display:none"></video>
+
+  <!-- Scripts -->
+  <script src="./sketch.js"></script>
+  <script src="./openai.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "EU: Trustworthy AI (7)",
+    "items": [
+      { "title": "人間の介在と監視", "mapsTo": ["humanAgency", "trust"] },
+      { "title": "技術的堅牢性と安全", "mapsTo": ["safety", "trust"] },
+      { "title": "プライバシーとデータガバナンス", "mapsTo": ["privacy", "transparency"] },
+      { "title": "透明性", "mapsTo": ["transparency", "trust"] },
+      { "title": "多様性・非差別・公正", "mapsTo": ["fairness", "wellbeing"] },
+      { "title": "社会・環境の福祉", "mapsTo": ["sustainability", "wellbeing"] },
+      { "title": "説明責任", "mapsTo": ["transparency", "humanAgency"] }
+    ]
+  },
+  {
+    "name": "日本: 人間中心のAI社会原則（例）",
+    "items": [
+      { "title": "人間の尊厳・自律", "mapsTo": ["humanAgency", "wellbeing"] },
+      { "title": "多様性・包摂", "mapsTo": ["fairness", "trust"] },
+      { "title": "持続可能性", "mapsTo": ["sustainability", "wellbeing"] },
+      { "title": "プライバシー・データ保護", "mapsTo": ["privacy", "transparency"] },
+      { "title": "安全・セキュリティ", "mapsTo": ["safety", "trust"] },
+      { "title": "公正競争・イノベーション", "mapsTo": ["fairness", "sustainability"] },
+      { "title": "説明責任・透明性", "mapsTo": ["transparency", "humanAgency"] }
+    ]
+  }
+]

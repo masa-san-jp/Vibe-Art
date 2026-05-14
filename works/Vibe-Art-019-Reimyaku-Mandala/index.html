@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>霊脈曼荼羅 – Particle Mandala (Mic Only)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- p5.js + sound -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/addons/p5.sound.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header class="topbar">
+      <h1>霊脈曼荼羅 <span class="ver">Particle + Mic</span></h1>
+      <div class="legend">
+        <span>1..4: 対称/テーマ</span>
+        <span>C: パレット</span>
+        <span>X: Cos/Sinebow</span>
+        <span>V: Psy強度</span>
+        <span>B: ポスタライズ</span>
+        <span>R: RDリセット</span>
+        <span>Space: フラッシュ</span>
+        <span>P: PNG保存</span>
+        <span>F: フルスクリーン</span>
+      </div>
+    </header>
+
+    <div id="hud" class="hud">
+      <div class="row">
+        <button id="toggleMic">🎤 Mic ON/OFF</button>
+        <button id="savePng">🖼 PNG保存</button>
+        <button id="recBtn">⏺ 録画</button>
+        <button id="fsBtn">⛶ Fullscreen</button>
+      </div>
+      <div class="row small">
+        <span>Mic: <strong id="micState">off</strong></span>
+        <span>FPS: <strong id="fpsVal">-</strong></span>
+        <span>low/mid/high: <strong id="bands">0 / 0 / 0</strong></span>
+        <span>Psy: <strong id="psyVal">0.6</strong></span>
+        <span>Posterize: <strong id="postVal">OFF</strong></span>
+        <span>Mode: <strong id="modeVal">Cosine</strong></span>
+        <span>Center: 固定</span>
+      </div>
+    </div>
+  </main>
+
+  <script src="sketch.js"></script>
+</body>
+</html>

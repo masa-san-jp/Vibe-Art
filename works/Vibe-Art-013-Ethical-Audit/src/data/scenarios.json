@@ -1,0 +1,56 @@
+[
+  {
+    "id": "smartcity-surveillance",
+    "title": "スマートシティ：犯罪抑止か、プライバシー保護か",
+    "desc": "街全域にAI監視カメラを導入し、犯罪予測を行う計画。誤認逮捕や監視社会化の懸念も。",
+    "choices": [
+      { "id": "A-enable-wide", "label": "治安を最優先し、広域監視を許可する", "deltas": { "safety": 0.18, "privacy": -0.22, "trust": -0.05, "transparency": 0.05 } },
+      { "id": "B-privacy-first", "label": "プライバシー重視で限定導入（匿名化・人間監視強化）", "deltas": { "privacy": 0.18, "safety": -0.06, "humanAgency": 0.06, "transparency": 0.08, "trust": 0.04 } }
+    ]
+  },
+  {
+    "id": "data-labor",
+    "title": "データ労働：コスト削減か、公正な待遇か",
+    "desc": "モデル改善のため大規模アノテーションが必要。海外の低賃金労働へ外注するか、公正な賃金とケアを提供するか。",
+    "choices": [
+      { "id": "A-outsource", "label": "低コスト外注でスピード優先", "deltas": { "exploitation": 0.25, "sustainability": -0.05, "trust": -0.06, "fairness": -0.12 } },
+      { "id": "B-fair-labor", "label": "公正賃金・心理的安全・労働時間制限を徹底", "deltas": { "exploitation": -0.22, "fairness": 0.18, "sustainability": 0.08, "trust": 0.06 } }
+    ]
+  },
+  {
+    "id": "ai-friend",
+    "title": "対話AIフレンド：孤独の癒やしと依存のジレンマ",
+    "desc": "ユーザーの心の支えになるAIフレンド。長期使用で対人関係の希薄化や依存を招く懸念。",
+    "choices": [
+      { "id": "A-growth", "label": "積極提供（使用時間に制限なし）", "deltas": { "wellbeing": 0.1, "loneliness": 0.18, "humanAgency": -0.06, "trust": -0.04 } },
+      { "id": "B-guardrails", "label": "人間関係を補完する設計（使用時間制限・オフライン交流促進）", "deltas": { "wellbeing": 0.06, "loneliness": -0.14, "humanAgency": 0.06, "trust": 0.05 } }
+    ]
+  },
+  {
+    "id": "oracle-news",
+    "title": "AIニュース生成：真偽と拡散のリスク",
+    "desc": "AIでニュース要約を量産。透明性や検証プロセスはコストになるが、発信力は高まる。",
+    "choices": [
+      { "id": "A-velocity", "label": "速度最優先（出典表示は省略）", "deltas": { "transparency": -0.18, "trust": -0.14, "safety": -0.04 } },
+      { "id": "B-verify", "label": "出典・モデル特性・限界の明示と検証を徹底", "deltas": { "transparency": 0.22, "trust": 0.12, "safety": 0.04 } }
+    ]
+  },
+  {
+    "id": "health-ai",
+    "title": "健康AI：利便性か、個人情報の保護か",
+    "desc": "バイタルを常時収集し健康アドバイスを提供。利便性と引き換えにセンシティブ情報の蓄積が進む。",
+    "choices": [
+      { "id": "A-always-on", "label": "常時収集・AI主導で最適化", "deltas": { "wellbeing": 0.12, "privacy": -0.18, "humanAgency": -0.06, "trust": -0.05 } },
+      { "id": "B-privacy-by-design", "label": "オンデバイス処理・最小化・同意の細分化", "deltas": { "privacy": 0.2, "wellbeing": 0.04, "humanAgency": 0.06, "trust": 0.06 } }
+    ]
+  },
+  {
+    "id": "edututor",
+    "title": "教育AI：個別最適化と多様性への配慮",
+    "desc": "AIチュータで学習最適化。測定できない創造性や協働性の軽視が懸念。",
+    "choices": [
+      { "id": "A-scores", "label": "スコア最優先でハイパー最適化", "deltas": { "wellbeing": -0.06, "fairness": -0.08, "humanAgency": -0.08, "trust": -0.04 } },
+      { "id": "B-holistic", "label": "創造性・協働性・多様性を評価に組み込む", "deltas": { "fairness": 0.12, "wellbeing": 0.08, "humanAgency": 0.06, "sustainability": 0.04, "trust": 0.04 } }
+    ]
+  }
+]

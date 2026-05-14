@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# OS
+.DS_Store
+
+# Build / Dist
+dist/
+build/
+
+# Project outputs
+DSP_Sim/
+*.wav
+*.mp3
+*.png
+*.pdf
+*.zip
