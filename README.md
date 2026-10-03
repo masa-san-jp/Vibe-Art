@@ -67,3 +67,13 @@ The numbering follows the source series. This archive currently contains the wor
 Most works refer to the Vibe-Art portfolio:
 
 https://vibe-art.myportfolio.com/
+
+## Technical paths across the works / 作品ごとの技術的な入口
+
+The archive preserves different production approaches rather than a shared runtime:
+
+- [Digital Shining Path (001)](works/Vibe-Art-001-DigitalShiningPath/README.md) uses Python CLI tools to generate participant-specific text, mandala images, audio and an HTML experience. The generated page is the browser-facing output; the work has a generation step before viewing.
+- [Reimyaku Mandala (019)](works/Vibe-Art-019-Reimyaku-Mandala/README.md) is a p5.js / p5.sound browser work. Microphone frequency bands affect a WebGL reaction-diffusion field and additive particles, making the visitor's sound part of the evolving image. It needs microphone permission and a suitable localhost/HTTPS context.
+
+作品001は「素材を生成してから体験ページを見る」構成、作品019は「その場のマイク入力で描画が変化する」構成です。前者はPython等の準備、後者はブラウザの音声入力・描画機能が入口になります。AIというシリーズ共通の主題から、全作品が同じモデルAPIや実行環境を使うとは限りません。依存関係・操作・安全上の注意は各作品のREADMEとソースを基準に確認してください。
+
